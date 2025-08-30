@@ -10,6 +10,8 @@ import {
     Settings,
     UserCircle,
     User,
+    Calendar1
+
 } from "lucide-react";
 
 const navConfig = {
@@ -17,6 +19,9 @@ const navConfig = {
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/dashboard/schedule", label: "Schedule", icon: Calendar },
         { href: "/dashboard/student", label: "Student", icon: User },
+        { href: "/dashboard/instructor", label: "Instructor", icon: User },
+        { href: "/dashboard/attendance", label: "Attendance", icon: Calendar },
+        { href: "/dashboard/program", label: "Program", icon: Calendar },
         { href: "/settings", label: "Settings", icon: Settings },
     ],
     user: [
