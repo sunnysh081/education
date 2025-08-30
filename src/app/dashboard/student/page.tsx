@@ -1,206 +1,128 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
-type Student = {
+type StudentListItem = {
     id: string;
-    name: string;
-    email: string;
+    firstName: string;
+    lastName: string;
+    email?: string;
+    mobile: string;
 };
 
 export default function StudentsPage() {
-    const [students, setStudents] = useState<Student[]>([]);
-    const [filtered, setFiltered] = useState<Student[]>([]);
+    const [students, setStudents] = useState<StudentListItem[]>([]);
+    const [filtered, setFiltered] = useState<StudentListItem[]>([]);
     const [search, setSearch] = useState("");
-    const [sort, setSort] = useState("id-asc");
     const [page, setPage] = useState(1);
-    const pageSize = 5;
+    const pageSize = 10;
+    const router = useRouter();
 
-    const [selected, setSelected] = useState<Student | null>(null);
-
-    // Fetch mock API
     useEffect(() => {
-        async function fetchStudents() {
+        async function load() {
             const res = await fetch("/api/students");
-            const responseJson = await res.json();
-            const data: Student[] = responseJson["data"]
-            setStudents(data);
-            setFiltered(data);
+            const data = await res.json();
+            setStudents(data.data);
+            setFiltered(data.data);
         }
-        fetchStudents();
+        load();
     }, []);
 
-    // Filter + sort
     useEffect(() => {
-        let list = students.filter(
+        const f = students.filter(
             (s) =>
-                s.id.toLowerCase().includes(search.toLowerCase()) ||
-                s.name.toLowerCase().includes(search.toLowerCase())
+                s.firstName.toLowerCase().includes(search.toLowerCase()) ||
+                s.lastName.toLowerCase().includes(search.toLowerCase()) ||
+                s.id.includes(search)
         );
-
-        if (sort === "id-asc") list.sort((a, b) => a.id.localeCompare(b.id));
-        if (sort === "id-desc") list.sort((a, b) => b.id.localeCompare(a.id));
-        if (sort === "name-asc") list.sort((a, b) => a.name.localeCompare(b.name));
-        if (sort === "name-desc") list.sort((a, b) => b.name.localeCompare(a.name));
-
-        setFiltered(list);
+        setFiltered(f);
         setPage(1);
-    }, [search, sort, students]);
+    }, [search, students]);
 
+    const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
     const totalPages = Math.ceil(filtered.length / pageSize);
-    const pageData = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-    function updateStudent(updated: Student) {
-        setStudents((prev) =>
-            prev.map((s) => (s.id === updated.id ? updated : s))
-        );
-        setSelected(updated);
-    }
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
+        <div className="p-6 space-y-4">
             <div className="flex justify-between items-center">
-                <h1 className="text-xl font-semibold">Students</h1>
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-4">
                 <Input
                     placeholder="Search by ID or Name"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="max-w-sm"
+                    className="w-64"
                 />
-                <Select value={sort} onValueChange={setSort}>
-                    <SelectTrigger className="w-40">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="id-asc">ID ↑</SelectItem>
-                        <SelectItem value="id-desc">ID ↓</SelectItem>
-                        <SelectItem value="name-asc">Name ↑</SelectItem>
-                        <SelectItem value="name-desc">Name ↓</SelectItem>
-                    </SelectContent>
-                </Select>
+                <Button onClick={() => alert("Open create student form")}>
+                    + Add Student
+                </Button>
             </div>
 
-            {/* Table */}
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {pageData.map((student) => (
-                        <TableRow
-                            key={student.id}
-                            className="cursor-pointer hover:bg-slate-100"
-                            onClick={() => setSelected(student)}
-                        >
-                            <TableCell>{student.id}</TableCell>
-                            <TableCell>{student.name}</TableCell>
-                            <TableCell>{student.email}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+            <div className="border rounded-md overflow-hidden">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-left">
+                        <tr>
+                            <th className="px-4 py-2">ID</th>
+                            <th className="px-4 py-2">Name</th>
+                            <th className="px-4 py-2">Email</th>
+                            <th className="px-4 py-2">Mobile</th>
+                            <th className="px-4 py-2">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {paginated.map((s) => (
+                            <tr
+                                key={s.id}
+                                className="border-t hover:bg-gray-50 cursor-pointer"
+                                onClick={() => router.push(`/dashboard/student/${s.id}`)}
+                            >
+                                <td className="px-4 py-2">{s.id}</td>
+                                <td className="px-4 py-2 font-medium text-blue-600">
+                                    {s.firstName} {s.lastName}
+                                </td>
+                                <td className="px-4 py-2">{s.email}</td>
+                                <td className="px-4 py-2">{s.mobile}</td>
+                                <td className="px-4 py-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // prevent row click
+                                            router.push(`/dashboard/student/${s.id}`);
+                                        }}
+                                    >
+                                        View
+                                    </Button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-                <Pagination>
-                    <PaginationContent>
-                        <PaginationItem>
-                            <PaginationPrevious
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                            />
-                        </PaginationItem>
-                        <span className="px-2 text-sm">
-                            Page {page} of {totalPages}
-                        </span>
-                        <PaginationItem>
-                            <PaginationNext
-                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                            />
-                        </PaginationItem>
-                    </PaginationContent>
-                </Pagination>
-            )}
-
-            {/* Details + Edit Dialog */}
-            {selected && (
-                <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Student Details</DialogTitle>
-                        </DialogHeader>
-
-                        <StudentForm student={selected} onSave={updateStudent} />
-                    </DialogContent>
-                </Dialog>
-            )}
+            <div className="flex justify-end gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                >
+                    Prev
+                </Button>
+                <span className="px-2 py-1 text-sm">
+                    Page {page} / {totalPages}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                >
+                    Next
+                </Button>
+            </div>
         </div>
-    );
-}
-
-function StudentForm({
-    student,
-    onSave,
-}: {
-    student: Student;
-    onSave: (s: Student) => void;
-}) {
-    const [id] = useState(student.id);
-    const [name, setName] = useState(student.name);
-    const [email, setEmail] = useState(student.email);
-
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        onSave({ id, name, email });
-    }
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <Input value={id} disabled />
-            <Input value={name} onChange={(e) => setName(e.target.value)}
-                autoFocus={false}
-            />
-            <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoFocus={false}
-            />
-            <Button type="submit" className="w-full">
-                Save
-            </Button>
-        </form>
     );
 }

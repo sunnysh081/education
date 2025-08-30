@@ -39,7 +39,7 @@ export default function Sidebar() {
         <aside className="flex flex-col w-64 h-screen border-r bg-white shadow-sm">
             {/* Brand / App Name */}
             <div className="h-14 flex items-center px-6 border-b">
-                <h1 className="text-lg font-semibold text-gray-800">EduPortal</h1>
+                <h1 className="text-lg font-semibold text-gray-800">Institution Name</h1>
             </div>
 
             {/* Navigation */}

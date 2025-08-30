@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-
 const students = [
     {
         id: "S001",
@@ -115,32 +114,17 @@ const students = [
     },
 ];
 
-// GET /api/students?search=&sort=&page=&pageSize=
-export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
-    const search = searchParams.get("search") || "";
-    const sort = searchParams.get("sort") || "id-asc";
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "5", 10);
+// GET /api/students/:id
+export async function GET(
+    req: Request,
+    context: { params: Promise<{ id: string }> }
+) {
+    const { id } = await context.params;
+    const student = students.find((s) => s.id === id);
 
-    // Filter
-    let result = students.filter(
-        (s) =>
-            s.id.toLowerCase().includes(search.toLowerCase()) ||
-            s.firstName.toLowerCase().includes(search.toLowerCase())
-    );
+    if (!student) {
+        return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
 
-    // Sort
-    if (sort === "id-asc") result = result.sort((a, b) => a.id.localeCompare(b.id));
-    if (sort === "id-desc") result = result.sort((a, b) => b.id.localeCompare(a.id));
-    if (sort === "firstName-asc") result = result.sort((a, b) => a.firstName.localeCompare(b.firstName));
-    if (sort === "firstName-desc") result = result.sort((a, b) => b.firstName.localeCompare(a.firstName));
-
-    // Pagination
-    const total = result.length;
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const data = result.slice(start, end);
-
-    return NextResponse.json({ data, total, page, pageSize });
+    return NextResponse.json(student);
 }
