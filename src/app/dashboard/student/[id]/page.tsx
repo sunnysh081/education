@@ -2,12 +2,12 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { User } from "lucide-react";
 import { toast } from "sonner";
+import AttendanceCalendar from "@/components/Attendence";
 
 type Student = {
     id: string;
@@ -55,7 +55,7 @@ export default function StudentProfilePage() {
             .then((res) => res.json())
             .then((data) => {
                 setStudent(data);
-                setForm(data); // initialize edit form
+                setForm(data);
             });
     }, [id]);
 
@@ -121,62 +121,61 @@ export default function StudentProfilePage() {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex-1 overflow-y-auto max-w-6xl mx-auto w-full">
-                <Tabs defaultValue="details" className="w-full">
-                    <div className="bg-white sticky top-0 z-10 border-b">
-                        <TabsList className="flex gap-3 px-6 py-3 bg-white">
-                            {["details", "address", "relation", "programs", "attendance"].map((tab) => (
-                                <TabsTrigger
-                                    key={tab}
-                                    value={tab}
-                                    className="px-4 py-2 text-sm font-medium rounded-full 
-                     text-gray-600 hover:text-gray-900 hover:bg-gray-100 
-                     data-[state=active]:bg-blue-600 data-[state=active]:text-white 
-                     transition-colors"
-                                >
-                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
+            {/* Sections stacked one below the other */}
+            <div className="flex-1 overflow-y-auto max-w-6xl mx-auto w-full space-y-6 p-6">
+                {/* Details */}
+                <SectionCard title="Details">
+                    <div className="grid sm:grid-cols-2 gap-6">
+                        <EditableInfo label="Email" value={form.email} editMode={editMode} onChange={(val) => handleChange("email", val)} />
+                        <EditableInfo label="Mobile" value={form.mobile} editMode={editMode} onChange={(val) => handleChange("mobile", val)} />
+                        <EditableInfo label="Date of Birth" value={form.dob} editMode={editMode} onChange={(val) => handleChange("dob", val)} />
+                        <EditableInfo label="Gender" value={form.gender} editMode={editMode} onChange={(val) => handleChange("gender", val)} />
                     </div>
+                </SectionCard>
 
-                    {/* Details */}
-                    <TabsContent value="details" className="p-6">
-                        <Card>
-                            <CardContent className="grid sm:grid-cols-2 gap-6 p-6">
-                                <EditableInfo
-                                    label="Email"
-                                    value={form.email}
-                                    editMode={editMode}
-                                    onChange={(val) => handleChange("email", val)}
-                                />
-                                <EditableInfo
-                                    label="Mobile"
-                                    value={form.mobile}
-                                    editMode={editMode}
-                                    onChange={(val) => handleChange("mobile", val)}
-                                />
-                                <EditableInfo
-                                    label="Date of Birth"
-                                    value={form.dob}
-                                    editMode={editMode}
-                                    onChange={(val) => handleChange("dob", val)}
-                                />
-                                <EditableInfo
-                                    label="Gender"
-                                    value={form.gender}
-                                    editMode={editMode}
-                                    onChange={(val) => handleChange("gender", val)}
-                                />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                {/* Address */}
+                <SectionCard title="Address">
+                    <div className="grid sm:grid-cols-2 gap-6">
+                        <EditableInfo label="Line 1" value={form.address?.line1} editMode={editMode} onChange={(val) => handleChange("address.line1", val)} />
+                        <EditableInfo label="City" value={form.address?.city} editMode={editMode} onChange={(val) => handleChange("address.city", val)} />
+                    </div>
+                </SectionCard>
 
-                    {/* Other tabs remain read-only for now */}
-                </Tabs>
+                {/* Relation */}
+                <SectionCard title="Guardian">
+                    <div className="grid sm:grid-cols-2 gap-6">
+                        <EditableInfo label="Name" value={form.relation?.guardian?.name} editMode={editMode} onChange={(val) => handleChange("relation.guardian.name", val)} />
+                        <EditableInfo label="Contact" value={form.relation?.guardian?.contact} editMode={editMode} onChange={(val) => handleChange("relation.guardian.contact", val)} />
+                    </div>
+                </SectionCard>
+
+                {/* Programs */}
+                <SectionCard title="Programs">
+                    {student.programs.map((p) => (
+                        <p key={p.id} className="text-sm text-gray-700">
+                            {p.name} — {p.instructor.name}
+                        </p>
+                    ))}
+                </SectionCard>
+
+                {/* Attendance Section */}
+                <SectionCard title="Attendance Overview">
+                    <AttendanceCalendar attendance={student.attendance} />
+
+                </SectionCard>
             </div>
         </div>
+    );
+}
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <Card>
+            <CardContent className="p-6">
+                <h2 className="text-lg font-semibold mb-4">{title}</h2>
+                {children}
+            </CardContent>
+        </Card>
     );
 }
 
