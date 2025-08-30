@@ -21,8 +21,8 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
-            <Card className="w-[400px] shadow-xl">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 px-4">
+            <Card className="w-full max-w-sm shadow-xl rounded-2xl">
                 <CardHeader>
                     <CardTitle className="text-2xl font-semibold text-center">
                         Sign in
