@@ -1,10 +1,13 @@
 const withPWA = require('next-pwa')({
-  dest: 'public'
-})
+  dest: 'public', // Directory for PWA assets
+  register: true, // Register the service worker
+  skipWaiting: true, // Activate the new service worker immediately
+  disable: process.env.NODE_ENV === 'development', // Disable PWA in development
+});
 
-module.exports = withPWA({
-  // next.js config
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-})
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Your other Next.js configurations
+};
+
+module.exports = withPWA(nextConfig);
