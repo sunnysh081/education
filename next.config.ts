@@ -8,6 +8,7 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Your other Next.js configurations
+  reactStrictMode: true,
 };
 
 module.exports = withPWA(nextConfig);
