@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -22,6 +22,10 @@ import {
     isSameMonth,
     isSameDay,
     eachDayOfInterval,
+    differenceInMinutes,
+    isBefore,
+    isAfter,
+    isWithinInterval,
 } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +34,7 @@ type Schedule = {
     title: string;
     startDate: Date;
     endDate: Date;
-    time: string; // e.g. "10:00"
+    time: string;
 };
 
 export default function SchedulePage() {
@@ -38,26 +42,41 @@ export default function SchedulePage() {
         {
             id: "1",
             title: "Morning Standup",
-            startDate: new Date(),
-            endDate: addDays(new Date(), 4),
-            time: "10:00",
+            startDate: new Date(new Date().setHours(9, 0, 0, 0)),
+            endDate: new Date(new Date().setHours(9, 30, 0, 0)),
+            time: "09:00",
         },
         {
             id: "2",
             title: "Project Review",
-            startDate: addDays(new Date(), 2),
-            endDate: addDays(new Date(), 6),
-            time: "15:00",
+            startDate: new Date(new Date().setHours(14, 0, 0, 0)),
+            endDate: new Date(new Date().setHours(15, 0, 0, 0)),
+            time: "14:00",
         },
     ]);
 
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [viewMode, setViewMode] = useState<"month" | "day">("month");
-
     const [newTitle, setNewTitle] = useState("");
     const [newStartDate, setNewStartDate] = useState("");
     const [newEndDate, setNewEndDate] = useState("");
     const [newTime, setNewTime] = useState("");
+
+    const today = new Date();
+    const days = getCalendarDays(selectedDate);
+    const dailySchedules = schedulesForDay(selectedDate, schedules);
+
+    const [now, setNow] = useState(new Date());
+    useEffect(() => {
+        const interval = setInterval(() => setNow(new Date()), 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const nextEvent = useMemo(() => {
+        return dailySchedules
+            .filter((s) => isAfter(s.startDate, now))
+            .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())[0];
+    }, [dailySchedules, now]);
 
     function getCalendarDays(date: Date) {
         const start = startOfWeek(startOfMonth(date));
@@ -89,7 +108,7 @@ export default function SchedulePage() {
         setNewTime("");
     }
 
-    function schedulesForDay(day: Date) {
+    function schedulesForDay(day: Date, schedules: Schedule[]) {
         return schedules.filter((s) =>
             eachDayOfInterval({ start: s.startDate, end: s.endDate }).some((d) =>
                 isSameDay(d, day)
@@ -97,14 +116,9 @@ export default function SchedulePage() {
         );
     }
 
-    const days = getCalendarDays(selectedDate);
-    const today = new Date();
-
-    const dailySchedules = schedulesForDay(selectedDate);
-
     return (
         <div className="space-y-6">
-            {/* Header with month/year and actions */}
+            {/* Header */}
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <Button
@@ -153,19 +167,14 @@ export default function SchedulePage() {
                                     onChange={(e) => setNewTitle(e.target.value)}
                                 />
                                 <Input
-                                    type="date"
+                                    type="datetime-local"
                                     value={newStartDate}
                                     onChange={(e) => setNewStartDate(e.target.value)}
                                 />
                                 <Input
-                                    type="date"
+                                    type="datetime-local"
                                     value={newEndDate}
                                     onChange={(e) => setNewEndDate(e.target.value)}
-                                />
-                                <Input
-                                    type="time"
-                                    value={newTime}
-                                    onChange={(e) => setNewTime(e.target.value)}
                                 />
                                 <Button type="submit" className="w-full">
                                     Save
@@ -176,65 +185,169 @@ export default function SchedulePage() {
                 </div>
             </div>
 
-            {/* Calendar Modes */}
+            {/* Views */}
             {viewMode === "month" ? (
-                // Month View
-                <div className="grid grid-cols-7 gap-2 text-center">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                        <div key={d} className="font-medium">
-                            {d}
-                        </div>
-                    ))}
-                    {days.map((day) => (
-                        <div
-                            key={day.toString()}
-                            onClick={() => {
-                                setSelectedDate(day);
-                                setViewMode("day");
-                            }}
-                            className={cn(
-                                "h-24 border rounded p-1 text-left cursor-pointer overflow-hidden",
-                                !isSameMonth(day, selectedDate) && "bg-slate-100 text-slate-400",
-                                isSameDay(day, today) && "border-blue-500",
-                                isSameDay(day, selectedDate) && "bg-blue-50 border-blue-500"
-                            )}
-                        >
-                            <div className="text-sm font-medium">{format(day, "d")}</div>
-                            <div className="space-y-1">
-                                {schedulesForDay(day).map((s) => (
-                                    <div
-                                        key={s.id}
-                                        className="truncate text-xs rounded bg-blue-100 text-blue-800 px-1"
-                                    >
-                                        {s.title} ({s.time})
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <MonthView
+                    days={days}
+                    schedules={schedules}
+                    selectedDate={selectedDate}
+                    today={today}
+                    setSelectedDate={setSelectedDate}
+                    setViewMode={setViewMode}
+                />
             ) : (
-                // Day View
-                <div>
-                    <h2 className="text-xl font-semibold mb-3">
-                        {format(selectedDate, "PPP")} – Daily Schedule
-                    </h2>
-                    <div className="divide-y border rounded">
-                        {dailySchedules.length === 0 ? (
-                            <p className="p-3 text-sm text-slate-500">
-                                No schedules for this day
-                            </p>
-                        ) : (
-                            dailySchedules.map((s) => (
-                                <div key={s.id} className="p-3">
-                                    <p className="font-medium">{s.title}</p>
-                                    <p className="text-sm text-slate-600">🕒 {s.time}</p>
-                                </div>
-                            ))
-                        )}
+                <DayView
+                    schedules={dailySchedules}
+                    now={now}
+                    selectedDate={selectedDate}
+                    nextEvent={nextEvent}
+                />
+            )}
+        </div>
+    );
+}
+
+function MonthView({
+    days,
+    schedules,
+    selectedDate,
+    today,
+    setSelectedDate,
+    setViewMode,
+}: any) {
+    function schedulesForDay(day: Date) {
+        return schedules.filter((s: Schedule) =>
+            eachDayOfInterval({ start: s.startDate, end: s.endDate }).some((d) =>
+                isSameDay(d, day)
+            )
+        );
+    }
+
+    return (
+        <div className="grid grid-cols-7 gap-2 text-center">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                <div key={d} className="font-medium">
+                    {d}
+                </div>
+            ))}
+            {days.map((day: Date) => (
+                <div
+                    key={day.toString()}
+                    onClick={() => {
+                        setSelectedDate(day);
+                        setViewMode("day");
+                    }}
+                    className={cn(
+                        "h-24 border rounded p-1 text-left cursor-pointer overflow-hidden",
+                        !isSameMonth(day, selectedDate) && "bg-slate-100 text-slate-400",
+                        isSameDay(day, today) && "border-blue-500",
+                        isSameDay(day, selectedDate) && "bg-blue-50 border-blue-500"
+                    )}
+                >
+                    <div className="text-sm font-medium">{format(day, "d")}</div>
+                    <div className="space-y-1">
+                        {schedulesForDay(day).map((s: Schedule) => (
+                            <div
+                                key={s.id}
+                                className="truncate text-xs rounded bg-blue-100 text-blue-800 px-1"
+                            >
+                                {s.title} ({s.time})
+                            </div>
+                        ))}
                     </div>
                 </div>
-            )}
+            ))}
+        </div>
+    );
+}
+
+function DayView({
+    schedules,
+    now,
+    selectedDate,
+    nextEvent,
+}: {
+    schedules: Schedule[];
+    now: Date;
+    selectedDate: Date;
+    nextEvent?: Schedule;
+}) {
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+
+    function getEventStyle(event: Schedule) {
+        const minutesFromStart = differenceInMinutes(event.startDate, startOfDay(event.startDate));
+        const duration = differenceInMinutes(event.endDate, event.startDate);
+
+        return {
+            top: (minutesFromStart / 60) * 60,
+            height: (duration / 60) * 60,
+        };
+    }
+
+    function startOfDay(date: Date) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+    }
+
+    return (
+        <div className="relative flex border rounded h-[1200px] overflow-y-scroll">
+            {/* Time column */}
+            <div className="w-16 border-r text-xs text-right pr-2">
+                {hours.map((h) => (
+                    <div key={h} className="h-16 relative">
+                        <span className="absolute -top-2 right-0">{`${h
+                            .toString()
+                            .padStart(2, "0")}:00`}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Events */}
+            <div className="flex-1 relative">
+                {schedules.map((event) => {
+                    const style = getEventStyle(event);
+                    const isOngoing = isWithinInterval(now, {
+                        start: event.startDate,
+                        end: event.endDate,
+                    });
+                    const isPast = isBefore(event.endDate, now);
+                    const isUpcoming = nextEvent?.id === event.id;
+
+                    return (
+                        <div
+                            key={event.id}
+                            className={cn(
+                                "absolute left-2 right-2 p-2 rounded border text-sm",
+                                isOngoing && "bg-blue-100 border-blue-600",
+                                isPast && "opacity-50",
+                                isUpcoming && "bg-blue-50 border-blue-500"
+                            )}
+                            style={style}
+                        >
+                            <p className="font-medium">{event.title}</p>
+                            <p className="text-xs">
+                                {format(event.startDate, "HH:mm")} –{" "}
+                                {format(event.endDate, "HH:mm")}
+                            </p>
+                        </div>
+                    );
+                })}
+
+                {/* Current time line */}
+                {isSameDay(now, selectedDate) && (
+                    <div
+                        className="absolute left-0 right-0 border-t-2 border-red-500"
+                        style={{
+                            top:
+                                (differenceInMinutes(now, startOfDay(now)) / 60) *
+                                60,
+                        }}
+                    >
+                        <span className="absolute -top-2 left-0 bg-red-500 text-white text-xs px-1 rounded">
+                            {format(now, "HH:mm")}
+                        </span>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
