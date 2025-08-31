@@ -16,6 +16,8 @@ import {
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 const navConfig = {
     admin: [
@@ -66,10 +68,9 @@ function SidebarNav({ role, pathname, onNavigate }: { role: "admin" | "user"; pa
 }
 
 export default function Sidebar() {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const pathname = usePathname();
     const [open, setOpen] = useState(false);
-
     if (!user) return null;
 
     return (
@@ -85,7 +86,7 @@ export default function Sidebar() {
             {/* Mobile Sidebar (Sheet Drawer) */}
             <header className="flex md:hidden fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b">
                 <div className="flex items-center justify-between h-14 px-4 w-full">
-                    <h1 className="text-lg font-semibold text-gray-800">Institution Name</h1>
+                    {/* Hamburger on the left */}
                     <Sheet open={open} onOpenChange={setOpen}>
                         <SheetTrigger asChild>
                             <Button
@@ -108,6 +109,33 @@ export default function Sidebar() {
                             />
                         </SheetContent>
                     </Sheet>
+
+                    {/* Logo / Title on the right */}
+                    {/* <h1 className="text-lg font-semibold text-gray-800">Institution Name</h1> */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="flex items-center gap-2">
+                                <Avatar className="w-7 h-7">
+                                    <AvatarFallback>
+                                        {user.email[0].toUpperCase()}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <span className="hidden sm:block text-sm font-medium">
+                                    {user.email}
+                                </span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuLabel>Account</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => (window.location.href = "/profile")}>
+                                Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={logout} className="text-red-600">
+                                Logout
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </header>
         </>
